@@ -1,0 +1,154 @@
+name: CI/CD Pipeline
+
+# Every push to main builds, tests, publishes and deploys. Pull requests only build and test.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: cicd-demo
+  REGISTRY: ${{ vars.ACR_LOGIN_SERVER }}     # e.g. cia2acr1234.azurecr.io (repository variable)
+  JAVA_VERSION: "17"
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # Stages 1-3: checkout, compile/package with Maven, run unit tests
+  build-test:
+    name: Build & Test (Maven)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Compile, test and package
+        run: mvn -B clean verify
+
+      - name: Publish test summary
+        if: always()
+        run: |
+          echo "### Unit test results" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -h "Tests run" target/surefire-reports/*.txt >> "$GITHUB_STEP_SUMMARY" || echo "no reports" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+
+      - name: Upload application jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: target/cicd-demo.jar
+
+  # Stages 4-5: build and tag the Docker image, push it to Azure Container Registry
+  docker:
+    name: Docker Build & Push (ACR)
+    needs: build-test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Download application jar
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: target/
+
+      - name: Compute image tag
+        id: meta
+        run: echo "image=${REGISTRY}/${IMAGE_NAME}:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ vars.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build, tag and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+  # Stages 6-7: deploy to AKS with Ansible, then verify rollout and the public endpoint
+  deploy:
+    name: Deploy to AKS (Ansible)
+    needs: docker
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl for AKS
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "$KUBE_CONFIG" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          kubectl get nodes -o wide
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ansible and the Kubernetes collection
+        run: |
+          pip install ansible-core kubernetes
+          ansible-galaxy collection install -r ansible/requirements.yml
+
+      - name: Deploy with Ansible
+        working-directory: ansible
+        env:
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          ansible-playbook deploy.yml \
+            -e "image=${REGISTRY}/${IMAGE_NAME}:${SHORT_SHA}" \
+            -e "build_sha=${SHORT_SHA}" \
+            -e "registry_server=${{ env.REGISTRY }}" \
+            -e "registry_username=${{ vars.ACR_USERNAME }}" \
+            -e "registry_password=${ACR_PASSWORD}"
+
+      - name: Verify deployment status
+        run: |
+          kubectl -n cicd-demo rollout status deployment/cicd-demo --timeout=120s
+          kubectl -n cicd-demo get deployment,pods,svc -o wide
+          IP=$(kubectl -n cicd-demo get svc cicd-demo -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "Application URL: http://$IP/"
+          curl -fsS "http://$IP/api/info"; echo
+          echo "### Deployed to http://$IP/ (commit ${GITHUB_SHA::7})" >> "$GITHUB_STEP_SUMMARY"

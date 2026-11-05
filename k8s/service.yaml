@@ -1,0 +1,16 @@
+# Azure provisions a public load balancer IP for this Service; open http://<EXTERNAL-IP>/
+apiVersion: v1
+kind: Service
+metadata:
+  name: cicd-demo
+  namespace: cicd-demo
+  labels:
+    app: cicd-demo
+spec:
+  type: LoadBalancer
+  selector:
+    app: cicd-demo
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

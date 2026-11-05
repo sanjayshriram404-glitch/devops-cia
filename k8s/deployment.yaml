@@ -1,0 +1,67 @@
+# IMAGE_PLACEHOLDER and BUILD_SHA_PLACEHOLDER are replaced by the Ansible playbook
+# (ansible/deploy.yml) with the image pushed by the pipeline and the Git commit SHA.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cicd-demo
+  namespace: cicd-demo
+  labels:
+    app: cicd-demo
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: cicd-demo
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: cicd-demo
+    spec:
+      imagePullSecrets:
+        - name: acr-pull-secret
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: cicd-demo
+          image: IMAGE_PLACEHOLDER
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: BUILD_SHA
+              value: "BUILD_SHA_PLACEHOLDER"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]

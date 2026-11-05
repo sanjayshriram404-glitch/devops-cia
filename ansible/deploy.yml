@@ -1,0 +1,111 @@
+---
+# Deploys (or updates) cicd-demo on the Kubernetes cluster selected by $KUBECONFIG.
+# Called by the "deploy" job in .github/workflows/ci-cd.yml:
+#   ansible-playbook -i ansible/inventory.ini ansible/deploy.yml \
+#     -e image=<acr>.azurecr.io/cicd-demo:<sha> -e build_sha=<sha> \
+#     -e registry_server=... -e registry_username=... -e registry_password=...
+- name: Deploy cicd-demo to Kubernetes
+  hosts: k8s_control
+  gather_facts: false
+
+  vars:
+    namespace: cicd-demo
+    app_name: cicd-demo
+    manifest_dir: "{{ playbook_dir }}/../k8s"
+    image: "cicd-demo:local"
+    build_sha: "local"
+    registry_server: ""
+    registry_username: ""
+    registry_password: ""
+    wait_for_lb: true          # set false for clusters without a cloud load balancer
+    rollout_timeout: 300
+
+  tasks:
+    - name: Ensure namespace exists
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ manifest_dir }}/namespace.yaml"
+
+    - name: Create or update the ACR image pull secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          type: kubernetes.io/dockerconfigjson
+          metadata:
+            name: acr-pull-secret
+            namespace: "{{ namespace }}"
+          data:
+            .dockerconfigjson: >-
+              {{ {'auths': {registry_server: {
+                    'username': registry_username,
+                    'password': registry_password,
+                    'auth': (registry_username ~ ':' ~ registry_password) | b64encode}}}
+                 | to_json | b64encode }}
+      no_log: true
+      when: registry_password | length > 0
+
+    - name: Apply Deployment with the new image (waits for the rolling update)
+      kubernetes.core.k8s:
+        state: present
+        definition: >-
+          {{ lookup('file', manifest_dir ~ '/deployment.yaml')
+             | replace('IMAGE_PLACEHOLDER', image)
+             | replace('BUILD_SHA_PLACEHOLDER', build_sha)
+             | from_yaml }}
+        wait: true
+        wait_timeout: "{{ rollout_timeout }}"
+
+    - name: Apply Service
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ manifest_dir }}/service.yaml"
+
+    - name: Read pod status
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ namespace }}"
+        label_selectors:
+          - "app={{ app_name }}"
+      register: pods
+
+    - name: Show pods
+      ansible.builtin.debug:
+        msg: "{{ item.metadata.name }} | {{ item.status.phase }} | {{ item.spec.containers[0].image }}"
+      loop: "{{ pods.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
+
+    - name: Wait for the LoadBalancer public IP
+      kubernetes.core.k8s_info:
+        kind: Service
+        name: "{{ app_name }}"
+        namespace: "{{ namespace }}"
+      register: svc
+      until: (svc.resources[0].status.loadBalancer.ingress | default([])) | length > 0
+      retries: 40
+      delay: 10
+      when: wait_for_lb | bool
+
+    - name: Check that the endpoint serves the new commit
+      when: wait_for_lb | bool
+      block:
+        - name: Work out the public address
+          ansible.builtin.set_fact:
+            endpoint: >-
+              http://{{ svc.resources[0].status.loadBalancer.ingress[0].ip
+                        | default(svc.resources[0].status.loadBalancer.ingress[0].hostname) }}
+
+        - name: Call /api/info until it reports this build
+          ansible.builtin.uri:
+            url: "{{ endpoint }}/api/info"
+            return_content: true
+          register: info
+          until: info.status == 200 and info.json.buildSha == build_sha
+          retries: 30
+          delay: 10
+
+        - name: Application is live
+          ansible.builtin.debug:
+            msg: "{{ endpoint }} is serving version {{ info.json.version }} (commit {{ info.json.buildSha }})"
