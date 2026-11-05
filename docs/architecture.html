@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Architecture</title>
+<style>
+  body{margin:0;background:#fff;font-family:Segoe UI,Arial,sans-serif}
+  svg text{font-family:Segoe UI,Arial,sans-serif}
+</style></head>
+<body>
+<svg width="1200" height="600" viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#44506a"/></marker>
+  </defs>
+  <style>
+    .box{fill:#eef4fb;stroke:#0b5cad;stroke-width:2;rx:10}
+    .az{fill:#e8f6ff;stroke:#0078d4;stroke-width:2}
+    .gh{fill:#f3f0fb;stroke:#6f42c1;stroke-width:2}
+    .t{font-size:17px;font-weight:600;fill:#1d2333}
+    .s{font-size:13px;fill:#44506a}
+    .l{stroke:#44506a;stroke-width:2;fill:none;marker-end:url(#a)}
+    .h{font-size:15px;font-weight:700}
+  </style>
+
+  <!-- Developer -->
+  <rect x="20" y="115" width="150" height="90" rx="10" class="box"/>
+  <text x="95" y="152" text-anchor="middle" class="t">Developer</text>
+  <text x="95" y="175" text-anchor="middle" class="s">git commit / push</text>
+
+  <!-- GitHub -->
+  <rect x="210" y="40" width="560" height="270" rx="14" class="gh"/>
+  <text x="230" y="68" class="h" fill="#6f42c1">GitHub</text>
+  <rect x="230" y="120" width="130" height="80" rx="10" class="box"/>
+  <text x="295" y="155" text-anchor="middle" class="t">Git repo</text>
+  <text x="295" y="177" text-anchor="middle" class="s">main branch</text>
+
+  <rect x="390" y="85" width="360" height="210" rx="10" fill="#fff" stroke="#6f42c1" stroke-width="1.5"/>
+  <text x="570" y="110" text-anchor="middle" class="t">GitHub Actions: ci-cd.yml</text>
+  <rect x="405" y="120" width="330" height="42" rx="8" class="box"/>
+  <text x="570" y="139" text-anchor="middle" class="s" font-weight="600">Job 1  build-test</text>
+  <text x="570" y="155" text-anchor="middle" class="s">checkout · mvn clean verify · 8 JUnit tests · jar</text>
+  <rect x="405" y="180" width="330" height="42" rx="8" class="box"/>
+  <text x="570" y="199" text-anchor="middle" class="s" font-weight="600">Job 2  docker</text>
+  <text x="570" y="215" text-anchor="middle" class="s">docker build · tag :sha + :latest · push</text>
+  <rect x="405" y="240" width="330" height="44" rx="8" class="box"/>
+  <text x="570" y="259" text-anchor="middle" class="s" font-weight="600">Job 3  deploy</text>
+  <text x="570" y="276" text-anchor="middle" class="s">ansible-playbook deploy.yml · rollout status · curl</text>
+
+  <!-- Azure -->
+  <rect x="210" y="340" width="970" height="240" rx="14" class="az"/>
+  <text x="230" y="565" class="h" fill="#0078d4">Microsoft Azure (Azure for Students) · resource group rg-cia2-cicd · Central India</text>
+  <rect x="240" y="395" width="250" height="110" rx="10" class="box"/>
+  <text x="365" y="430" text-anchor="middle" class="t">Azure Container Registry</text>
+  <text x="365" y="455" text-anchor="middle" class="s">Basic SKU</text>
+  <text x="365" y="477" text-anchor="middle" class="s">cicd-demo:&lt;sha&gt;, :latest</text>
+
+  <rect x="560" y="385" width="420" height="135" rx="10" fill="#fff" stroke="#0078d4" stroke-width="1.5"/>
+  <text x="770" y="408" text-anchor="middle" class="t">AKS cluster aks-cia2-cicd</text>
+  <text x="770" y="426" text-anchor="middle" class="s">namespace cicd-demo · Deployment (2 replicas, rolling update)</text>
+  <rect x="580" y="440" width="120" height="60" rx="8" class="box"/>
+  <text x="640" y="467" text-anchor="middle" class="s" font-weight="600">Pod 1</text>
+  <text x="640" y="485" text-anchor="middle" class="s">Spring Boot :8080</text>
+  <rect x="715" y="440" width="120" height="60" rx="8" class="box"/>
+  <text x="775" y="467" text-anchor="middle" class="s" font-weight="600">Pod 2</text>
+  <text x="775" y="485" text-anchor="middle" class="s">Spring Boot :8080</text>
+  <rect x="850" y="440" width="115" height="60" rx="8" class="box"/>
+  <text x="907" y="467" text-anchor="middle" class="s" font-weight="600">Service</text>
+  <text x="907" y="485" text-anchor="middle" class="s">LoadBalancer :80</text>
+
+  <rect x="1020" y="415" width="140" height="80" rx="10" class="box"/>
+  <text x="1090" y="450" text-anchor="middle" class="t">Browser</text>
+  <text x="1090" y="472" text-anchor="middle" class="s">http://&lt;public-IP&gt;</text>
+
+  <!-- arrows -->
+  <path d="M170 160 L228 160" class="l"/>
+  <path d="M360 155 L403 141" class="l"/>
+  <path d="M570 222 L570 238" class="l"/>
+  <path d="M570 162 L570 178" class="l"/>
+  <path d="M405 205 C340 230 340 330 365 393" class="l"/>
+  <path d="M735 262 C830 270 860 320 850 383" class="l"/>
+  <path d="M490 450 L578 465" class="l"/>
+  <path d="M1018 455 L967 468" class="l"/>
+  <text x="245" y="330" class="s">push image</text>
+  <text x="870" y="330" class="s">Ansible / kubernetes.core.k8s</text>
+  <text x="500" y="440" class="s">pull</text>
+</svg>
+</body></html>

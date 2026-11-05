@@ -8,7 +8,7 @@ RG="${RG:-rg-cia2-cicd}"
 LOCATION="${LOCATION:-centralindia}"
 ACR_NAME="${ACR_NAME:-cia2acr$RANDOM}"        # must be globally unique, lowercase letters/digits
 AKS_NAME="${AKS_NAME:-aks-cia2-cicd}"
-NODE_SIZE="${NODE_SIZE:-Standard_B2s}"
+NODE_SIZE="${NODE_SIZE:-Standard_B2s_v2}"
 
 echo ">> Registering resource providers"
 az provider register --namespace Microsoft.ContainerService --wait

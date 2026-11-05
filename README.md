@@ -44,7 +44,7 @@ Or run the commands one at a time:
 ```bash
 az group create -n rg-cia2-cicd -l centralindia
 az acr create -g rg-cia2-cicd -n <acrname> --sku Basic --admin-enabled true
-az aks create -g rg-cia2-cicd -n aks-cia2-cicd --tier free --node-count 1 --node-vm-size Standard_B2s --generate-ssh-keys
+az aks create -g rg-cia2-cicd -n aks-cia2-cicd --tier free --node-count 1 --node-vm-size Standard_B2s_v2 --generate-ssh-keys
 az aks get-credentials -g rg-cia2-cicd -n aks-cia2-cicd
 kubectl get nodes
 ```
