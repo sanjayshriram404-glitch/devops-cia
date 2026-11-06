@@ -23,7 +23,7 @@ class HomeControllerTest {
     void homePageRendersVersion() throws Exception {
         mvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("CI/CD Demo Application")));
+                .andExpect(content().string(containsString("Replicas")));
     }
 
     @Test

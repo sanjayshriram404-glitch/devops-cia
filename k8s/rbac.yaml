@@ -1,0 +1,47 @@
+# Least-privilege identity for the dashboard inside the app.
+# It can only see/scale/restart its own Deployment and delete its own pods,
+# and only in the cicd-demo namespace.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cicd-demo
+  namespace: cicd-demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cicd-demo-dashboard
+  namespace: cicd-demo
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["cicd-demo"]
+    verbs: ["get", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/scale"]
+    resourceNames: ["cicd-demo"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "delete"]
+  - apiGroups: [""]
+    resources: ["services"]
+    resourceNames: ["cicd-demo"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cicd-demo-dashboard
+  namespace: cicd-demo
+subjects:
+  - kind: ServiceAccount
+    name: cicd-demo
+    namespace: cicd-demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cicd-demo-dashboard

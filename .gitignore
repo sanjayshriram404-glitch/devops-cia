@@ -6,3 +6,6 @@ target/
 *.iml
 kubeconfig*
 *.retry
+
+# Portal screenshots show account details; keep them out of the public repo
+docs/screenshots/*.jpg

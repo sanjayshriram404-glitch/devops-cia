@@ -46,14 +46,36 @@
       no_log: true
       when: registry_password | length > 0
 
-    - name: Apply Deployment with the new image (waits for the rolling update)
+    - name: Apply ServiceAccount and RBAC for the dashboard
       kubernetes.core.k8s:
         state: present
-        definition: >-
+        src: "{{ manifest_dir }}/rbac.yaml"
+
+    - name: Read the current Deployment (to keep a replica count set from the dashboard)
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        name: "{{ app_name }}"
+        namespace: "{{ namespace }}"
+      register: current
+
+    - name: Render the Deployment manifest with this build's image
+      ansible.builtin.set_fact:
+        deployment_def: >-
           {{ lookup('file', manifest_dir ~ '/deployment.yaml')
              | replace('IMAGE_PLACEHOLDER', image)
              | replace('BUILD_SHA_PLACEHOLDER', build_sha)
              | from_yaml }}
+
+    - name: Keep the existing replica count
+      ansible.builtin.set_fact:
+        deployment_def: >-
+          {{ deployment_def | combine({'spec': {'replicas': current.resources[0].spec.replicas}}, recursive=True) }}
+      when: current.resources | length > 0
+
+    - name: Apply Deployment (waits for the rolling update)
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ deployment_def }}"
         wait: true
         wait_timeout: "{{ rollout_timeout }}"
 

@@ -3,28 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CI/CD Demo</title>
-    <style>
-        body { font-family: Segoe UI, Arial, sans-serif; background: #f4f6fb; margin: 0; color: #1d2333; }
-        .card { max-width: 640px; margin: 64px auto; background: #fff; border-radius: 12px; padding: 32px 40px;
-                box-shadow: 0 4px 18px rgba(0,0,0,.08); }
-        h1 { margin-top: 0; color: #0b5cad; }
-        table { border-collapse: collapse; width: 100%; margin-top: 16px; }
-        td { padding: 8px 4px; border-bottom: 1px solid #e5e8ef; }
-        td:first-child { font-weight: 600; width: 40%; }
-        .badge { display: inline-block; background: #0b5cad; color: #fff; padding: 2px 10px; border-radius: 10px; }
-    </style>
+    <title>cicd-demo · Kubernetes control panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}" href="/css/dashboard.css">
 </head>
 <body>
-<div class="card">
-    <h1>CI/CD Demo Application</h1>
-    <p th:text="${info.message}">message</p>
-    <table>
-        <tr><td>Version</td><td><span class="badge" th:text="${info.version}">1.0.0</span></td></tr>
-        <tr><td>Git commit</td><td th:text="${info.buildSha}">sha</td></tr>
-        <tr><td>Served by pod</td><td th:text="${info.podName}">pod</td></tr>
-        <tr><td>Pipeline</td><td>Git &rarr; Maven &rarr; Docker &rarr; ACR &rarr; Ansible &rarr; AKS</td></tr>
-    </table>
-</div>
+<header class="masthead">
+    <div class="masthead-main">
+        <h1 class="app-name">cicd-demo</h1>
+        <p class="app-message" th:text="${info.message}">Deployed automatically by GitHub Actions to Azure Kubernetes Service</p>
+    </div>
+    <dl class="build">
+        <div><dt>Version</dt><dd class="version" th:text="${info.version}">1.0.0</dd></div>
+        <div><dt>Commit</dt><dd class="code" th:text="${info.buildSha}">local</dd></div>
+        <div><dt>This page came from</dt><dd class="code" id="served-by" th:text="${info.podName}">localhost</dd></div>
+    </dl>
+    <p class="live" id="live" aria-live="polite"><span class="live-dot"></span><span id="live-text">Connecting…</span></p>
+</header>
+
+<main class="layout">
+    <section class="rack-panel" aria-labelledby="pods-title">
+        <div class="panel-head">
+            <h2 id="pods-title">Pods</h2>
+            <p class="panel-note" id="pods-summary"></p>
+        </div>
+        <ol class="rack" id="rack"></ol>
+        <div class="offline" id="offline" hidden>
+            <h3>No cluster connection</h3>
+            <p id="offline-text"></p>
+        </div>
+    </section>
+
+    <aside class="side">
+        <section class="control" aria-labelledby="replicas-title">
+            <h2 id="replicas-title">Replicas</h2>
+            <div class="stepper">
+                <button type="button" class="step" id="minus" aria-label="Remove one replica">&minus;</button>
+                <output class="count" id="count" aria-live="polite">–</output>
+                <button type="button" class="step" id="plus" aria-label="Add one replica">+</button>
+            </div>
+            <div class="presets" id="presets" role="group" aria-label="Set replica count"></div>
+            <p class="panel-note" id="scale-note">Pick a number to scale the Deployment.</p>
+
+            <label class="token" id="token-row" hidden>
+                <span>Dashboard token</span>
+                <input type="password" id="token" autocomplete="off">
+            </label>
+
+            <button type="button" class="restart" id="restart">Restart all pods</button>
+            <p class="panel-note">Replaces pods one by one, the same as <code>kubectl rollout restart</code>.</p>
+        </section>
+
+        <section class="facts" aria-labelledby="deploy-title">
+            <h2 id="deploy-title">Deployment</h2>
+            <dl id="deploy-facts"></dl>
+        </section>
+
+        <section class="facts" aria-labelledby="svc-title">
+            <h2 id="svc-title">Service</h2>
+            <dl id="svc-facts"></dl>
+        </section>
+    </aside>
+
+    <section class="events" aria-labelledby="events-title">
+        <h2 id="events-title">Recent cluster events</h2>
+        <ol class="event-list" id="events"></ol>
+    </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script th:src="@{/js/dashboard.js}" src="/js/dashboard.js"></script>
 </body>
 </html>

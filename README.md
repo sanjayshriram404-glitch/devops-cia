@@ -4,7 +4,7 @@ A Spring Boot web app built with **Maven**, packaged with **Docker**, pushed to 
 
 ```
 git push ─► GitHub Actions
-             ├─ 1 build-test : checkout ─► mvn clean verify (compile, 8 unit tests, package jar)
+             ├─ 1 build-test : checkout ─► mvn clean verify (compile, 21 unit tests, package jar)
              ├─ 2 docker     : docker build ─► tag :<sha> & :latest ─► push to ACR
              └─ 3 deploy     : kubeconfig ─► ansible-playbook deploy.yml ─► AKS rolling update
                                 ─► rollout status ─► curl http://<EXTERNAL-IP>/api/info
@@ -14,11 +14,11 @@ git push ─► GitHub Actions
 
 | Path | Purpose |
 |---|---|
-| `src/main/java/...` | Spring Boot app (`/`, `/api/info`, `/api/greet`, `/actuator/health`) |
+| `src/main/java/...` | Spring Boot app (`/` dashboard, `/api/k8s/*`, `/api/info`, `/api/greet`, `/actuator/health`) |
 | `src/test/java/...` | JUnit 5 + MockMvc unit tests |
 | `pom.xml` | Maven build |
 | `Dockerfile`, `.dockerignore` | Runtime image (Temurin 17 JRE, non-root UID 10001) |
-| `k8s/` | Namespace, Deployment (2 replicas, probes, limits), LoadBalancer Service |
+| `k8s/` | Namespace, RBAC, Deployment (2 replicas, probes, limits), LoadBalancer Service |
 | `ansible/` | `deploy.yml` playbook, `inventory.ini`, `requirements.yml` |
 | `.github/workflows/ci-cd.yml` | The pipeline |
 | `scripts/azure-setup.sh` / `azure-cleanup.sh` | Create / delete the Azure resources |
@@ -99,6 +99,25 @@ The pipeline runs on its own, pushes image `:<new-sha>`, and Ansible rolls the D
 
 ```bash
 kubectl -n cicd-demo get pods -o jsonpath="{..image}"
+```
+
+## Kubernetes dashboard
+
+The home page is a live control panel for the Deployment. It refreshes every 3 seconds.
+
+| Control | What it does | Same as |
+|---|---|---|
+| Replicas stepper and 1-5 buttons | Scales the Deployment (limit 5) | `kubectl scale deployment/cicd-demo --replicas=N` |
+| Delete pod | Deletes one pod so you can watch Kubernetes replace it | `kubectl delete pod <name>` |
+| Restart all pods | Rolling restart | `kubectl rollout restart deployment/cicd-demo` |
+
+The app calls the Kubernetes API with its own ServiceAccount (`k8s/rbac.yaml`), which can only touch this app in the `cicd-demo` namespace. A replica count set here survives the next pipeline deploy, because Ansible keeps the current value. Running the jar on a laptop leaves the dashboard disconnected on purpose, so it can't change whatever cluster your kubeconfig points at.
+
+The buttons are open to anyone who can reach the public IP. To require a token:
+
+```bash
+kubectl -n cicd-demo create secret generic dashboard-token --from-literal=token=<choose-a-token>
+kubectl -n cicd-demo rollout restart deployment/cicd-demo
 ```
 
 ## 7. Clean up (stops Azure charges)

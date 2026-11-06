@@ -23,6 +23,7 @@ spec:
       labels:
         app: cicd-demo
     spec:
+      serviceAccountName: cicd-demo      # identity used by the dashboard (k8s/rbac.yaml)
       imagePullSecrets:
         - name: acr-pull-secret
       securityContext:
@@ -41,6 +42,17 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # Optional: create this secret to require a token for scale/restart/delete
+            - name: DASHBOARD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dashboard-token
+                  key: token
+                  optional: true
           resources:
             requests:
               cpu: 100m
