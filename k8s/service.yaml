@@ -1,4 +1,5 @@
-# Azure provisions a public load balancer IP for this Service; open http://<EXTERNAL-IP>/
+# Azure provisions a public load balancer IP for this Service, and the annotation gives it
+# a hostname: http://cia2-cicd-demo.centralindia.cloudapp.azure.com/
 apiVersion: v1
 kind: Service
 metadata:
@@ -6,6 +7,8 @@ metadata:
   namespace: cicd-demo
   labels:
     app: cicd-demo
+  annotations:
+    service.beta.kubernetes.io/azure-dns-label-name: cia2-cicd-demo
 spec:
   type: LoadBalancer
   selector:
