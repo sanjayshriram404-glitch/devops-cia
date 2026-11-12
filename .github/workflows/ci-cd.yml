@@ -108,7 +108,7 @@ jobs:
       # Any HIGH/CRITICAL finding fails the job, so the image is never pushed or deployed.
       - name: Scan image with Trivy (report)
         if: always()
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.meta.outputs.image }}
           format: table
@@ -136,7 +136,7 @@ jobs:
           path: trivy-report.txt
 
       - name: Trivy gate (fail on HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.meta.outputs.image }}
           format: table
