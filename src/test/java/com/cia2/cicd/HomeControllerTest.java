@@ -20,10 +20,19 @@ class HomeControllerTest {
     private MockMvc mvc;
 
     @Test
-    void homePageRendersVersion() throws Exception {
+    void homePageIsTheGame() throws Exception {
         mvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Replicas")));
+                .andExpect(content().string(containsString("id=\"board\"")))
+                .andExpect(content().string(containsString("href=\"/dashboard\"")));
+    }
+
+    @Test
+    void dashboardPageRendersControls() throws Exception {
+        mvc.perform(get("/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Replicas")))
+                .andExpect(content().string(containsString("href=\"/\"")));
     }
 
     @Test

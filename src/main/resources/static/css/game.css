@@ -1,0 +1,93 @@
+/* X/O game page. Colours, fonts and buttons come from dashboard.css. */
+
+.game {
+    width: min(100% - 32px, 440px);
+    margin: 32px auto 48px;
+}
+
+.game-title {
+    font-size: clamp(3rem, 12vw, 5rem);
+    font-stretch: 125%;
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+}
+
+.turn {
+    margin: 10px 0 20px;
+    font-size: 1.125rem;
+    font-weight: 600;
+    min-height: 1.5em;
+}
+.turn.win { color: var(--green); }
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 10px;
+    background: var(--rail);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.cell {
+    aspect-ratio: 1;
+    border: 1px solid #FFFFFF;
+    border-radius: 8px;
+    background: var(--panel);
+    box-shadow: 0 1px 0 var(--line);
+    font-size: clamp(2.5rem, 12vw, 4rem);
+    font-weight: 800;
+    font-stretch: 125%;
+    line-height: 1;
+}
+.cell:hover:not(:disabled) { background: #FFFFFF; border-color: var(--blue); }
+.cell:disabled { cursor: default; opacity: 1; }
+.cell[data-mark="X"] { color: var(--ink); }
+.cell[data-mark="O"] { color: var(--blue); }
+.cell.winning { background: #E3F4EC; border-color: var(--green); }
+.cell.placed { animation: place 180ms ease-out; }
+
+.scores {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 20px 0 0;
+    text-align: center;
+}
+.scores dt { font-size: 0.8125rem; color: var(--steel); }
+.scores dd {
+    margin: 2px 0 0;
+    font-size: 1.75rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.game-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 20px; }
+.game-actions .restart { margin-top: 0; }
+.secondary {
+    padding: 11px 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #FFFFFF;
+    font-weight: 600;
+}
+.secondary:hover { border-color: var(--blue); color: var(--blue); }
+
+.build-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 24px;
+    padding: 20px 16px 32px;
+    border-top: 1px solid var(--line);
+    font-size: 0.8125rem;
+    color: var(--steel);
+}
+.build-footer strong { color: var(--ink); }
+
+@keyframes place { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .cell.placed { animation: none; }
+}

@@ -17,10 +17,18 @@ public class HomeController {
         this.info = info;
     }
 
+    /** Home page: a two-player X/O game. */
     @GetMapping("/")
-    public String home(Model model) {
+    public String game(Model model) {
         model.addAttribute("info", info);
-        return "index";
+        return "game";
+    }
+
+    /** Kubernetes control panel: live pods, scaling, restart. */
+    @GetMapping("/dashboard")
+    public String dashboard(Model model) {
+        model.addAttribute("info", info);
+        return "dashboard";
     }
 
     @GetMapping("/api/info")

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>X/O game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}" href="/css/dashboard.css">
+    <link rel="stylesheet" th:href="@{/css/game.css}" href="/css/game.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Pages">
+    <a href="/" th:href="@{/}" aria-current="page">X/O game</a>
+    <a href="/dashboard" th:href="@{/dashboard}">Kubernetes dashboard</a>
+</nav>
+
+<main class="game">
+    <h1 class="game-title">X/O</h1>
+    <p class="turn" id="status" aria-live="polite">X to play</p>
+
+    <div class="board" id="board" role="group" aria-label="Game board"></div>
+
+    <dl class="scores">
+        <div><dt>X wins</dt><dd id="score-x">0</dd></div>
+        <div><dt>Draws</dt><dd id="score-draw">0</dd></div>
+        <div><dt>O wins</dt><dd id="score-o">0</dd></div>
+    </dl>
+
+    <div class="game-actions">
+        <button type="button" class="restart" id="new-game">New game</button>
+        <button type="button" class="secondary" id="reset-scores">Reset scores</button>
+    </div>
+    <p class="panel-note">Two players take turns on this device. Get three in a row to win.</p>
+</main>
+
+<footer class="build-footer">
+    <span>Version <strong th:text="${info.version}">1.0.0</strong></span>
+    <span>Commit <code th:text="${info.buildSha}">local</code></span>
+    <span>Served by <code th:text="${info.podName}">localhost</code></span>
+</footer>
+
+<script th:src="@{/js/game.js}" src="/js/game.js"></script>
+</body>
+</html>

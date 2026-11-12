@@ -4,7 +4,7 @@ A Spring Boot web app built with **Maven**, packaged with **Docker**, pushed to 
 
 ```
 git push ─► GitHub Actions
-             ├─ 1 build-test : checkout ─► mvn clean verify (compile, 21 unit tests, package jar)
+             ├─ 1 build-test : checkout ─► mvn clean verify (compile, 22 unit tests, package jar)
              ├─ 2 docker     : docker build ─► tag :<sha> & :latest ─► push to ACR
              └─ 3 deploy     : kubeconfig ─► ansible-playbook deploy.yml ─► AKS rolling update
                                 ─► rollout status ─► curl http://<EXTERNAL-IP>/api/info
@@ -14,7 +14,7 @@ git push ─► GitHub Actions
 
 | Path | Purpose |
 |---|---|
-| `src/main/java/...` | Spring Boot app (`/` dashboard, `/api/k8s/*`, `/api/info`, `/api/greet`, `/actuator/health`) |
+| `src/main/java/...` | Spring Boot app (`/` X/O game, `/dashboard` Kubernetes dashboard, `/api/k8s/*`, `/api/info`, `/actuator/health`) |
 | `src/test/java/...` | JUnit 5 + MockMvc unit tests |
 | `pom.xml` | Maven build |
 | `Dockerfile`, `.dockerignore` | Runtime image (Temurin 17 JRE, non-root UID 10001) |
@@ -103,7 +103,7 @@ kubectl -n cicd-demo get pods -o jsonpath="{..image}"
 
 ## Kubernetes dashboard
 
-The home page is a live control panel for the Deployment. It refreshes every 3 seconds.
+The home page `/` is a two-player X/O game. `/dashboard` is a live control panel for the Deployment. It refreshes every 3 seconds.
 
 | Control | What it does | Same as |
 |---|---|---|
