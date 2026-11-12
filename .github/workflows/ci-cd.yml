@@ -90,17 +90,64 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build, tag and push image
+      # Build into the local Docker daemon first so the image can be scanned before it is pushed
+      - name: Build and tag image (local)
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          load: true
+          push: false
           tags: |
             ${{ steps.meta.outputs.image }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
+
+      # Security gate: Trivy scans the OS packages and the Java libraries inside the image.
+      # Any HIGH/CRITICAL finding fails the job, so the image is never pushed or deployed.
+      - name: Scan image with Trivy (report)
+        if: always()
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.meta.outputs.image }}
+          format: table
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          vuln-type: os,library
+          ignore-unfixed: false
+          exit-code: "0"
+          output: trivy-report.txt
+
+      - name: Publish Trivy report
+        if: always()
+        run: |
+          {
+            echo "### Trivy image scan"
+            echo '```'
+            cat trivy-report.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: trivy-report
+          path: trivy-report.txt
+
+      - name: Trivy gate (fail on HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.meta.outputs.image }}
+          format: table
+          severity: HIGH,CRITICAL
+          vuln-type: os,library
+          exit-code: "1"
+
+      - name: Push image to ACR
+        run: |
+          docker push "${{ steps.meta.outputs.image }}"
+          docker push "${REGISTRY}/${IMAGE_NAME}:latest"
 
   # Stages 6-7: deploy to AKS with Ansible, then verify rollout and the public endpoint
   deploy:

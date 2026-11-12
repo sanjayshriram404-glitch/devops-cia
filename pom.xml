@@ -43,6 +43,13 @@
             <artifactId>kubernetes-client</artifactId>
             <version>${fabric8.version}</version>
         </dependency>
+        <!-- INTENTIONALLY VULNERABLE (demo for the Trivy scan): log4j-core 2.14.1 is affected by
+             Log4Shell CVE-2021-44228 (CRITICAL). Remove this dependency to make the scan pass. -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.14.1</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
